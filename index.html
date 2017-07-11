@@ -1,195 +1,412 @@
 <!DOCTYPE html>
 <html lang="en">
+    <head>
+        <script>
+            function sleep(delay) {
+                var start = new Date().getTime();
+                while (new Date().getTime() < start + delay);
+            }
+            sleep(3000);
+            var ready = (function() {
+                var readyList,
+                    DOMContentLoaded,
+                    class2type = {};
+                class2type["[object Boolean]"] = "boolean";
+                class2type["[object Number]"] = "number";
+                class2type["[object String]"] = "string";
+                class2type["[object Function]"] = "function";
+                class2type["[object Array]"] = "array";
+                class2type["[object Date]"] = "date";
+                class2type["[object RegExp]"] = "regexp";
+                class2type["[object Object]"] = "object";
+                var ReadyObj = {
+                    // Is the DOM ready to be used? Set to true once it occurs.
+                    isReady: false,
+                    // A counter to track how many items to wait for before
+                    // the ready event fires. See #6781
+                    readyWait: 1,
+                    // Hold (or release) the ready event
+                    holdReady: function(hold) {
+                        if (hold) {
+                            ReadyObj.readyWait++;
+                        } else {
+                            ReadyObj.ready(true);
+                        }
+                    },
+                    // Handle when the DOM is ready
+                    ready: function(wait) {
+                        // Either a released hold or an DOMready/load event and not yet ready
+                        if ((wait === true && !--ReadyObj.readyWait) || (wait !== true && !ReadyObj.isReady)) {
+                            // Make sure body exists, at least, in case IE gets a little overzealous (ticket #5443).
+                            if (!document.body) {
+                                return setTimeout(ReadyObj.ready, 1);
+                            }
+                            // Remember that the DOM is ready
+                            ReadyObj.isReady = true;
+                            // If a normal DOM Ready event fired, decrement, and wait if need be
+                            if (wait !== true && --ReadyObj.readyWait > 0) {
+                                return;
+                            }
+                            // If there are functions bound, to execute
+                            readyList.resolveWith(document, [ReadyObj]);
+                            // Trigger any bound ready events
+                            //if ( ReadyObj.fn.trigger ) {
+                            //    ReadyObj( document ).trigger( "ready" ).unbind( "ready" );
+                            //}
+                        }
+                    },
+                    bindReady: function() {
+                        if (readyList) {
+                            return;
+                        }
+                        readyList = ReadyObj._Deferred();
+                        // Catch cases where $(document).ready() is called after the
+                        // browser event has already occurred.
+                        if (document.readyState === "complete") {
+                            // Handle it asynchronously to allow scripts the opportunity to delay ready
+                            return setTimeout(ReadyObj.ready, 1);
+                        }
+                        // Mozilla, Opera and webkit nightlies currently support this event
+                        if (document.addEventListener) {
+                            // Use the handy event callback
+                            document.addEventListener("DOMContentLoaded", DOMContentLoaded, false);
+                            // A fallback to window.onload, that will always work
+                            window.addEventListener("load", ReadyObj.ready, false);
+                            // If IE event model is used
+                        } else if (document.attachEvent) {
+                            // ensure firing before onload,
+                            // maybe late but safe also for iframes
+                            document.attachEvent("onreadystatechange", DOMContentLoaded);
+                            // A fallback to window.onload, that will always work
+                            window.attachEvent("onload", ReadyObj.ready);
+                            // If IE and not a frame
+                            // continually check to see if the document is ready
+                            var toplevel = false;
+                            try {
+                                toplevel = window.frameElement == null;
+                            } catch (e) {}
+                            if (document.documentElement.doScroll && toplevel) {
+                                doScrollCheck();
+                            }
+                        }
+                    },
+                    _Deferred: function() {
+                        var // callbacks list
+                            callbacks = [],
+                            // stored [ context , args ]
+                            fired,
+                            // to avoid firing when already doing so
+                            firing,
+                            // flag to know if the deferred has been cancelled
+                            cancelled,
+                            // the deferred itself
+                            deferred = {
+                                // done( f1, f2, ...)
+                                done: function() {
+                                    if (!cancelled) {
+                                        var args = arguments,
+                                            i,
+                                            length,
+                                            elem,
+                                            type,
+                                            _fired;
+                                        if (fired) {
+                                            _fired = fired;
+                                            fired = 0;
+                                        }
+                                        for (i = 0, length = args.length; i < length; i++) {
+                                            elem = args[i];
+                                            type = ReadyObj.type(elem);
+                                            if (type === "array") {
+                                                deferred.done.apply(deferred, elem);
+                                            } else if (type === "function") {
+                                                callbacks.push(elem);
+                                            }
+                                        }
+                                        if (_fired) {
+                                            deferred.resolveWith(_fired[0], _fired[1]);
+                                        }
+                                    }
+                                    return this;
+                                },
+                                // resolve with given context and args
+                                resolveWith: function(context, args) {
+                                    if (!cancelled && !fired && !firing) {
+                                        // make sure args are available (#8421)
+                                        args = args || [];
+                                        firing = 1;
+                                        try {
+                                            while (callbacks[0]) {
+                                                callbacks.shift().apply(context, args); //shifts a callback, and applies it to document
+                                            }
+                                        } finally {
+                                            fired = [context, args];
+                                            firing = 0;
+                                        }
+                                    }
+                                    return this;
+                                },
+                                // resolve with this as context and given arguments
+                                resolve: function() {
+                                    deferred.resolveWith(this, arguments);
+                                    return this;
+                                },
+                                // Has this deferred been resolved?
+                                isResolved: function() {
+                                    return !!(firing || fired);
+                                },
+                                // Cancel
+                                cancel: function() {
+                                    cancelled = 1;
+                                    callbacks = [];
+                                    return this;
+                                }
+                            };
+                        return deferred;
+                    },
+                    type: function(obj) {
+                        return obj == null ?
+                            String(obj) :
+                            class2type[Object.prototype.toString.call(obj)] || "object";
+                    }
+                }
+                // The DOM ready check for Internet Explorer
+                function doScrollCheck() {
+                    if (ReadyObj.isReady) {
+                        return;
+                    }
+                    try {
+                        // If IE is used, use the trick by Diego Perini
+                        // http://javascript.nwbox.com/IEContentLoaded/
+                        document.documentElement.doScroll("left");
+                    } catch (e) {
+                        setTimeout(doScrollCheck, 1);
+                        return;
+                    }
+                    // and execute any waiting functions
+                    ReadyObj.ready();
+                }
+                // Cleanup functions for the document ready method
+                if (document.addEventListener) {
+                    DOMContentLoaded = function() {
+                        document.removeEventListener("DOMContentLoaded", DOMContentLoaded, false);
+                        ReadyObj.ready();
+                    };
+                } else if (document.attachEvent) {
+                    DOMContentLoaded = function() {
+                        // Make sure body exists, at least, in case IE gets a little overzealous (ticket #5443).
+                        if (document.readyState === "complete") {
+                            document.detachEvent("onreadystatechange", DOMContentLoaded);
+                            ReadyObj.ready();
+                        }
+                    };
+                }
 
-<head>
+                function ready(fn) {
+                    // Attach the listeners
+                    ReadyObj.bindReady();
+                    var type = ReadyObj.type(fn);
+                    // Add the callback
+                    readyList.done(fn); //readyList is result of _Deferred()
+                }
+                return ready;
+            })();
+            ready(function() {
+            });
+            ready(function() {
+            });
+            document.onfocus = function(e) {
+                console.log(e);
+                
+            }
+        </script>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
 
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>93Akkord</title>
 
-    <title>93Akkord</title>
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="css/font-awesome.min.css">
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="css/font-awesome.min.css">
+        <!-- Bootstrap core CSS -->
+        <link href="css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Bootstrap core CSS -->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
+        <!-- Material Design Bootstrap -->
+        <link href="css/mdb.min.css" rel="stylesheet">
 
-    <!-- Material Design Bootstrap -->
-    <link href="css/mdb.min.css" rel="stylesheet">
+        <!-- Template styles -->
+        <style rel="stylesheet">
+            /* TEMPLATE STYLES */
 
-    <!-- Template styles -->
-    <style rel="stylesheet">
-        /* TEMPLATE STYLES */
-        
-        main {
-            padding-top: 3rem;
-            padding-bottom: 2rem;
-        }
-		
-		body {
-			background-color: #1E1E1E;
-		}
-        
-        .widget-wrapper {
-            padding-bottom: 2rem;
-            border-bottom: 1px solid #e0e0e0;
-            margin-bottom: 2rem;
-        }
-        
-        .reviews {
-            text-align: center;
-            border-top: 1px solid #e0e0e0;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 1rem;
-            margin-top: 1rem;
-            margin-bottom: 2rem;
-        }
-        
-        .price {
-            position: absolute;
-            left: 0;
-            top: 0;
-            margin-top: -2px;
-        }
-        
-        .price .tag {
-            margin: 0;
-        }
-    </style>
+            main {
+                padding-top: 3rem;
+                padding-bottom: 2rem;
+            }
 
-</head>
+            body {
+                background-color: #1E1E1E;
+            }
 
-<body>
+            .widget-wrapper {
+                padding-bottom: 2rem;
+                border-bottom: 1px solid #e0e0e0;
+                margin-bottom: 2rem;
+            }
 
+            .reviews {
+                text-align: center;
+                border-top: 1px solid #e0e0e0;
+                border-bottom: 1px solid #e0e0e0;
+                padding: 1rem;
+                margin-top: 1rem;
+                margin-bottom: 2rem;
+            }
 
-    <header>
+            .price {
+                position: absolute;
+                left: 0;
+                top: 0;
+                margin-top: -2px;
+            }
 
-        <!--Navbar-->
-        <nav class="navbar navbar-dark primary-color-dark">
+            .price .tag {
+                margin: 0;
+            }
 
-            <!-- Collapse button-->
-            <button class="navbar-toggler hidden-sm-up" type="button" data-toggle="collapse" data-target="#collapseEx">
+        </style>
+
+    </head>
+
+    <body>
+
+        <header>
+
+            <!--Navbar-->
+            <nav class="navbar navbar-dark primary-color-dark">
+
+                <!-- Collapse button-->
+                <button class="navbar-toggler hidden-sm-up" type="button" data-toggle="collapse" data-target="#collapseEx">
                 <i class="fa fa-bars"></i>
             </button>
 
-            <div class="container">
+                <div class="container">
 
-                <!--Collapse content-->
-                <div class="collapse navbar-toggleable-xs" id="collapseEx">
-                    <!--Navbar Brand-->
-                    <a class="navbar-brand" href="https://93akkord.github.io/">93Akkord</a>
-                    <!--Links-->
-                    <ul class="nav navbar-nav">
-                        <li class="nav-item active">
-                            <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Projects</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">About</a>
-                        </li>
-                    </ul>
-                    <!--Search form-->
-                    <form class="form-inline">
-                        <input class="form-control" type="text" placeholder="Search">
-                    </form>
+                    <!--Collapse content-->
+                    <div class="collapse navbar-toggleable-xs" id="collapseEx">
+                        <!--Navbar Brand-->
+                        <a class="navbar-brand" href="https://93akkord.github.io/">93Akkord</a>
+                        <!--Links-->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item active">
+                                <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Projects</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" onclick="window.focus();">About</a>
+                            </li>
+                        </ul>
+                        <!--Search form-->
+                        <form class="form-inline">
+                            <input class="form-control" type="text" placeholder="Search" id="SearchTextBox">
+                        </form>
+                    </div>
+                    <!--/.Collapse content-->
+
                 </div>
-                <!--/.Collapse content-->
 
-            </div>
+            </nav>
+            <!--/.Navbar-->
 
-        </nav>
-        <!--/.Navbar-->
+        </header>
 
-    </header>
+        <main>
 
-    <main>
+            <!--Main layout-->
+            <div class="container">
+                <div class="row">
 
-        <!--Main layout-->
-        <div class="container">
-            <div class="row">
+                    <!--Sidebar-->
+                    <div class="col-lg-4">
 
-                <!--Sidebar-->
-                <div class="col-lg-4">
-
-                    <!-- <div class="widget-wrapper"> -->
+                        <!-- <div class="widget-wrapper"> -->
                         <!-- <h5></h5> -->
                         <br>
                         <div class="list-group">
                             <a href="#" class="list-group-item active">Downloads</a>
                         </div>
-                    <!-- </div> -->
+                        <!-- </div> -->
 
-                    <!-- <div class="widget-wrapper"> -->
+                        <!-- <div class="widget-wrapper"> -->
                         <!-- <h4>Subscription form:</h4> -->
                         <!-- <br> -->
                         <!-- <div class="card"> -->
-                            <!-- <div class="card-block"> -->
-                                <!-- <p><strong>Subscribe to our newsletter</strong></p> -->
-                                <!-- <p>Once a week we will send you a summary of the most useful news</p> -->
-                                <!-- <div class="md-form"> -->
-                                    <!-- <i class="fa fa-user prefix"></i> -->
-                                    <!-- <input type="text" id="form1" class="form-control"> -->
-                                    <!-- <label for="form1">Your name</label> -->
-                                <!-- </div> -->
-                                <!-- <div class="md-form"> -->
-                                    <!-- <i class="fa fa-envelope prefix"></i> -->
-                                    <!-- <input type="text" id="form2" class="form-control"> -->
-                                    <!-- <label for="form2">Your email</label> -->
-                                <!-- </div> -->
-                                <!-- <button class="btn btn-primary">Submit</button> -->
-
-                            <!-- </div> -->
+                        <!-- <div class="card-block"> -->
+                        <!-- <p><strong>Subscribe to our newsletter</strong></p> -->
+                        <!-- <p>Once a week we will send you a summary of the most useful news</p> -->
+                        <!-- <div class="md-form"> -->
+                        <!-- <i class="fa fa-user prefix"></i> -->
+                        <!-- <input type="text" id="form1" class="form-control"> -->
+                        <!-- <label for="form1">Your name</label> -->
                         <!-- </div> -->
-                    <!-- </div> -->
+                        <!-- <div class="md-form"> -->
+                        <!-- <i class="fa fa-envelope prefix"></i> -->
+                        <!-- <input type="text" id="form2" class="form-control"> -->
+                        <!-- <label for="form2">Your email</label> -->
+                        <!-- </div> -->
+                        <!-- <button class="btn btn-primary">Submit</button> -->
 
-                </div>
-                <!--/.Sidebar-->
+                        <!-- </div> -->
+                        <!-- </div> -->
+                        <!-- </div> -->
 
-                <!--Main column-->
-                <div class="col-lg-8">
+                    </div>
+                    <!--/.Sidebar-->
 
-                    <!--First row-->
-                    <div class="row">
-                        <div class="col-md-12">
-                            <!--Product-->
-                            <div class="product-wrapper">
+                    <!--Main column-->
+                    <div class="col-lg-8">
 
-                                <!--Featured image-->
-                                <div class="view overlay hm-white-light z-depth-1-half">
-                                    <!-- <img src="http://mdbootstrap.com/img/Photos/Slides/img%20(38).jpg" class="img-fluid " alt=""> -->
-                                    <div class="mask">
+                        <!--First row-->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <!--Product-->
+                                <div class="product-wrapper">
+
+                                    <!--Featured image-->
+                                    <div class="view overlay hm-white-light z-depth-1-half">
+                                        <!-- <img src="http://mdbootstrap.com/img/Photos/Slides/img%20(38).jpg" class="img-fluid " alt=""> -->
+                                        <div class="mask">
+                                        </div>
+                                        <h3 class="price"><span class="tag red darken-2">10 $</span></h3>
                                     </div>
-                                    <h3 class="price"><span class="tag red darken-2">10 $</span></h3>
-                                </div>
-                                <!--/.Featured image-->
+                                    <!--/.Featured image-->
 
-                                <!--Product data-->
-                                <h2 class="h2-responsive">Credit Notes</h2>
-                                <hr>
-                                <h4>Version 4.130</h4>
-								<br>Release notes...
-								<br>
-                                <br>Zip Archive: <a href="projects/CreditNotes/downloads/CreditNotes-v4.130.zip">Download</a>
-                                <br>Executable: <a href="projects/CreditNotes/downloads/CreditNotes-v4.130.exe">Download</a> 
+                                    <!--Product data-->
+                                    <h2 class="h2-responsive" id="CreditNotes-Header">Credit Notes</h2>
+                                    <hr>
+                                    <h4>Version 4.130</h4>
+                                    <br>Release notes...
+                                    <br>
+                                    <br>Zip Archive: <a href="projects/CreditNotes/downloads/CreditNotes-v4.130.zip">Download</a>
+                                    <br>Executable: <a href="projects/CreditNotes/downloads/CreditNotes-v4.130.exe">Download</a>
 
-								<hr>
-                                <h4>Version 4.129</h4>
-								<br>Release notes...
-								<br>
-                                <br>Zip Archive: <a href="projects/CreditNotes/downloads/CreditNotes-v4.129.zip">Download</a>
-                                <br>Executable: <a href="projects/CreditNotes/downloads/CreditNotes-v4.129.exe">Download</a> 
-								
-                                <hr>
-                                <h4>Version 3.884</h4>
-								<br>Release notes...
-								<br>
-                                <br>Zip Archive: <a href="projects/CreditNotes/downloads/CreditNotes-v3.884.zip">Download</a>
-                                <br>Executable: <a href="projects/CreditNotes/downloads/CreditNotes-v3.884.exe">Download</a>
+                                    <hr>
+                                    <h4>Version 4.129</h4>
+                                    <br>Release notes...
+                                    <br>
+                                    <br>Zip Archive: <a href="projects/CreditNotes/downloads/CreditNotes-v4.129.zip">Download</a>
+                                    <br>Executable: <a href="projects/CreditNotes/downloads/CreditNotes-v4.129.exe">Download</a>
 
-                                <!-- <ul class="rating inline-ul">
+                                    <hr>
+                                    <h4>Version 3.884</h4>
+                                    <br>Release notes...
+                                    <br>
+                                    <br>Zip Archive: <a href="projects/CreditNotes/downloads/CreditNotes-v3.884.zip">Download</a>
+                                    <br>Executable: <a href="projects/CreditNotes/downloads/CreditNotes-v3.884.exe">Download</a>
+
+                                    <!-- <ul class="rating inline-ul">
                                     <li><i class="fa fa-star amber-text"></i></li>
                                     <li><i class="fa fa-star amber-text"></i></li>
                                     <li><i class="fa fa-star amber-text"></i></li>
@@ -197,23 +414,23 @@
                                     <li><i class="fa fa-star"></i></li>
                                 </ul> -->
 
+                                </div>
+                                <!--Product-->
+
                             </div>
-                            <!--Product-->
-
                         </div>
-                    </div>
-                    <!--/.First row-->
+                        <!--/.First row-->
 
-                    <!--Second row-->
-                    <div class="row">
+                        <!--Second row-->
+                        <div class="row">
 
-                        <!--Heading-->
-                        <!-- <div class="reviews">
+                            <!--Heading-->
+                            <!-- <div class="reviews">
                             <h2 class="h2-responsive">Reviews</h2>
                         </div> -->
 
-                        <!--First review-->
-                        <!-- <div class="media">
+                            <!--First review-->
+                            <!-- <div class="media">
                             <a class="media-left" href="#">
                                 <img class="rounded-circle" src="http://mdbootstrap.com/img//Photos/Avatars/img%20(13).jpg" alt="Generic placeholder image">
                             </a>
@@ -230,8 +447,8 @@
                             </div>
                         </div> -->
 
-                        <!--Second review-->
-                        <!-- <div class="media">
+                            <!--Second review-->
+                            <!-- <div class="media">
                             <a class="media-left" href="#">
                                 <img class="rounded-circle" src="http://mdbootstrap.com/img//Photos/Avatars/avatar-6.jpg" alt="Generic placeholder image">
                             </a>
@@ -248,8 +465,8 @@
                             </div>
                         </div> -->
 
-                        <!--Third review-->
-                        <!-- <div class="media">
+                            <!--Third review-->
+                            <!-- <div class="media">
                             <a class="media-left" href="#">
                                 <img class="rounded-circle" src="http://mdbootstrap.com/img//Photos/Avatars/avatar-7.jpg" alt="Generic placeholder image">
                             </a>
@@ -266,84 +483,84 @@
                             </div>
                         </div> -->
 
+                        </div>
+                        <!--/.Second row-->
+
                     </div>
-                    <!--/.Second row-->
+                    <!--/.Main column-->
 
                 </div>
-                <!--/.Main column-->
-
             </div>
-        </div>
-        <!--/.Main layout-->
+            <!--/.Main layout-->
 
-    </main>
+        </main>
 
-    <!--Footer-->
-    <footer class="page-footer center-on-small-only primary-color-dark">
+        <!--Footer-->
+        <footer class="page-footer center-on-small-only primary-color-dark">
 
-        <!--Footer Links-->
-        <div class="container-fluid">
-            <div class="row">
+            <!--Footer Links-->
+            <div class="container-fluid">
+                <div class="row">
 
-                <!--First column-->
-                <div class="col-md-3 offset-lg-1 hidden-lg-down">
-                    <h5>About 93Akkord</h5>
-                    <p>Material Design (codenamed Quantum Paper) is a design language developed by Google. </p>
+                    <!--First column-->
+                    <div class="col-md-3 offset-lg-1 hidden-lg-down">
+                        <h5>About 93Akkord</h5>
+                        <p>Material Design (codenamed Quantum Paper) is a design language developed by Google. </p>
 
-                    <p>Material Design for Bootstrap (MDB) is a powerful Material Design UI KIT for most popular HTML, CSS, and JS framework - Bootstrap.</p>
+                        <p>Material Design for Bootstrap (MDB) is a powerful Material Design UI KIT for most popular HTML, CSS, and JS framework - Bootstrap.</p>
+                    </div>
+                    <!--/.First column-->
+
+                    <hr class="hidden-md-up">
+
+                    <!--Second column-->
+                    <div class="col-lg-2 col-md-4 offset-lg-1">
+                        <h5 class="title">Test Projects</h5>
+                        <ul>
+                            <li><a href="tests/dnd-upload.html">Drag and Drop Uploader</a></li>
+                            <li><a href="#!">Link 2</a></li>
+                            <li><a href="#!">Link 3</a></li>
+                            <li><a href="#!">Link 4</a></li>
+                        </ul>
+                    </div>
+                    <!--/.Second column-->
+
+                    <hr class="hidden-md-up">
+
+                    <!--Third column-->
+                    <div class="col-lg-2 col-md-4">
+                        <h5 class="title">Second column</h5>
+                        <ul>
+                            <li><a href="#!">Link 1</a></li>
+                            <li><a href="#!">Link 2</a></li>
+                            <li><a href="#!">Link 3</a></li>
+                            <li><a href="#!">Link 4</a></li>
+                        </ul>
+                    </div>
+                    <!--/.Third column-->
+
+                    <hr class="hidden-md-up">
+
+                    <!--Fourth column-->
+                    <div class="col-lg-2 col-md-4">
+                        <h5 class="title">Third column</h5>
+                        <ul>
+                            <li><a href="#!">Link 1</a></li>
+                            <li><a href="#!">Link 2</a></li>
+                            <li><a href="#!">Link 3</a></li>
+                            <li><a href="#!">Link 4</a></li>
+                        </ul>
+                    </div>
+                    <!--/.Fourth column-->
+
                 </div>
-                <!--/.First column-->
-
-                <hr class="hidden-md-up">
-
-                <!--Second column-->
-                <div class="col-lg-2 col-md-4 offset-lg-1">
-                    <h5 class="title">Test Projects</h5>
-                    <ul>
-                        <li><a href="tests/dnd-upload.html">Drag and Drop Uploader</a></li>
-                        <li><a href="#!">Link 2</a></li>
-                        <li><a href="#!">Link 3</a></li>
-                        <li><a href="#!">Link 4</a></li>
-                    </ul>
-                </div>
-                <!--/.Second column-->
-
-                <hr class="hidden-md-up">
-
-                <!--Third column-->
-                <div class="col-lg-2 col-md-4">
-                    <h5 class="title">Second column</h5>
-                    <ul>
-                        <li><a href="#!">Link 1</a></li>
-                        <li><a href="#!">Link 2</a></li>
-                        <li><a href="#!">Link 3</a></li>
-                        <li><a href="#!">Link 4</a></li>
-                    </ul>
-                </div>
-                <!--/.Third column-->
-
-                <hr class="hidden-md-up">
-
-                <!--Fourth column-->
-                <div class="col-lg-2 col-md-4">
-                    <h5 class="title">Third column</h5>
-                    <ul>
-                        <li><a href="#!">Link 1</a></li>
-                        <li><a href="#!">Link 2</a></li>
-                        <li><a href="#!">Link 3</a></li>
-                        <li><a href="#!">Link 4</a></li>
-                    </ul>
-                </div>
-                <!--/.Fourth column-->
-
             </div>
-        </div>
-        <!--/.Footer Links-->
+            <!--/.Footer Links-->
 
-        <hr>
+            <hr>
 
-        <!--Call to action-->
-<!--         <div class="call-to-action">
+            <!--Call to action-->
+            <!--         <div class="call-to-action">
             <h4>Material Design for Bootstrap</h4>
             <ul>
                 <li>
@@ -352,36 +569,36 @@
                 <li><a target="_blank" href="http://mdbootstrap.com/material-design-for-bootstrap/" class="btn btn-default">Learn more</a></li>
             </ul>
         </div> -->
-        <!--/.Call to action-->
+            <!--/.Call to action-->
 
-        <!--Copyright-->
-        <div class="footer-copyright">
-            <div class="container-fluid">
-                © 2017 Copyright: <a href="https://93akkord.github.io"> 93akkord.github.io </a>
+            <!--Copyright-->
+            <div class="footer-copyright">
+                <div class="container-fluid">
+                    © 2017 Copyright: <a href="https://93akkord.github.io"> 93akkord.github.io </a>
 
+                </div>
             </div>
-        </div>
-        <!--/.Copyright-->
+            <!--/.Copyright-->
 
-    </footer>
-    <!--/.Footer-->
+        </footer>
+        <!--/.Footer-->
 
+        <!-- SCRIPTS -->
 
-    <!-- SCRIPTS -->
+        <!-- JQuery -->
+        <script type="text/javascript" src="js/jquery-2.2.3.min.js"></script>
 
-    <!-- JQuery -->
-    <script type="text/javascript" src="js/jquery-2.2.3.min.js"></script>
+        <!-- Bootstrap tooltips -->
+        <script type="text/javascript" src="js/tether.min.js"></script>
 
-    <!-- Bootstrap tooltips -->
-    <script type="text/javascript" src="js/tether.min.js"></script>
+        <!-- Bootstrap core JavaScript -->
+        <script type="text/javascript" src="js/bootstrap.min.js"></script>
 
-    <!-- Bootstrap core JavaScript -->
-    <script type="text/javascript" src="js/bootstrap.min.js"></script>
-
-    <!-- MDB core JavaScript -->
-    <script type="text/javascript" src="js/mdb.min.js"></script>
-
-
-</body>
-
+        <!-- MDB core JavaScript -->
+        <script type="text/javascript" src="js/mdb.min.js"></script>
+        
+        <script language="javascript" type="text/javascript">
+        document.focus();
+        </script>
+    </body>
 </html>
